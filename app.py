@@ -59,12 +59,17 @@ def update_status():
     data = request.json
     prof_email = data.get('email')
     new_status = data.get('status')
+    password = data.get('password')
 
-    if not prof_email or not new_status:
-        return jsonify({'success': False, 'message': 'بيانات غير مكتملة'}), 400
+    if not prof_email or not new_status or not password:
+        return jsonify({'success': False, 'message': 'بيانات غير مكتملة (يرجى إدخال كلمة المرور)'}), 400
 
     try:
-        response = requests.post(GOOGLE_SCRIPT_URL, json={'email': prof_email, 'status': new_status})
+        response = requests.post(GOOGLE_SCRIPT_URL, json={
+            'email': prof_email,
+            'status': new_status,
+            'password': password
+        })
         return jsonify(response.json())
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
