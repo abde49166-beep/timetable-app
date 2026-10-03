@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق توجيه الطلاب الجامعيين</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .card {
+            background: #e8f4f8;
+            border-right: 5px solid #3498db;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        .status-present {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .status-absent {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎓 توجيه الطلاب الجامعيين</h1>
+
+    <!-- قسم الطلاب -->
+    <div class="section">
+        <h2>جدول الحصص المباشر</h2>
+        <label for="groupSelect">اختر الفوج الدراسي:</label>
+        <select id="groupSelect" onchange="fetchSession()">
+            <option value="فوج 1">فوج 1</option>
+            <option value="فوج 2">فوج 2</option>
+        </select>
+
+        <div id="sessionResult">
+            <p style="text-align:center;">جاري تحميل البيانات...</p>
+        </div>
+    </div>
+
+    <!-- قسم الأساتذة -->
+    <div class="section">
+        <h2>تحديث حالة الأستاذ</h2>
+        <label for="profEmail">البريد الإلكتروني للأستاذ:</label>
+        <input type="email" id="profEmail" placeholder="مثال: prof1@univ.dz">
+
+        <label for="profStatus">الحالة:</label>
+        <select id="profStatus">
+            <option value="حاضر">حاضر</option>
+            <option value="غائب">غائب</option>
+        </select>
+
+        <button onclick="updateStatus()">تحديث الحالة</button>
+        <p id="updateMessage" style="text-align:center; font-weight:bold;"></p>
+    </div>
+</div>
+
+<script>
+    async function fetchSession() {
+        const group = document.getElementById('groupSelect').value;
+        const resultDiv = document.getElementById('sessionResult');
+        resultDiv.innerHTML = "<p style='text-align:center;'>جاري التحقق من الجدول...</p>";
+
+        try {
+            const response = await fetch(`/api/get-current-session?group=${encodeURIComponent(group)}`);
+            const data = await response.json();
+
+            if (data.session) {
+                const statusClass = data.session.prof_status === 'حاضر' ? 'status-present' : 'status-absent';
+                resultDiv.innerHTML = `
+                    <div class="card">
+                        <h3>📖 المادة: ${data.session.subject}</h3>
+                        <p>📍 <strong>المكان:</strong> ${data.session.location}</p>
+                        <p>⏰ <strong>التوقيت:</strong> من ${data.session.start} إلى ${data.session.end}</p>
+                        <p>👨‍🏫 <strong>حالة الأستاذ:</strong> <span class="${statusClass}">${data.session.prof_status}</span></p>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `<p style='text-align:center; color: #7f8c8d;'>لا توجد حصة حالية لهذا الفوج في الوقت الحالي (${data.day} - ${data.time}).</p>`;
+            }
+        } catch (error) {
+            resultDiv.innerHTML = "<p style='text-align:center; color:red;'>حدث خطأ أثناء جلب البيانات.</p>";
+        }
+    }
+
+    async function updateStatus() {
+        const email = document.getElementById('profEmail').value;
+        const status = document.getElementById('profStatus').value;
+        const msg = document.getElementById('updateMessage');
+
+        if (!email) {
+            msg.style.color = "red";
+            msg.innerText = "يرجى إدخال البريد الإلكتروني";
+            return;
+        }
+
+        msg.style.color = "black";
+        msg.innerText = "جاري التحديث...";
+
+        try {
+            const response = await fetch('/api/update-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email: email, status: status })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                msg.style.color = "green";
+                msg.innerText = "تم تحديث الحالة بنجاح في Google Sheets!";
+                fetchSession();
+            } else {
+                msg.style.color = "red";
+                msg.innerText = "حدث خطأ في التحديث.";
+            }
+        } catch (error) {
+            msg.style.color = "red";
+            msg.innerText = "فشل الاتصال بالسيرفر.";
+        }
+    }
+
+    fetchSession();
+</script>
+
+</body>
+</html>
