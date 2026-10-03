@@ -224,7 +224,7 @@ body.dark-mode td {
 
     fetchSession();
 </script>
-<script>
+ <script>
     // تفعيل وتذكر الوضع الداكن
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
@@ -248,8 +248,8 @@ body.dark-mode td {
 
     // جلب وتنسيق جميع حصص اليوم (الحالية والقادمة)
     function fetchSession() {
-        const groupSelect = document.getElementById('groupSelect') || document.querySelector('select');
-        const container = document.getElementById('session-info') || document.querySelector('.card, .section');
+        const groupSelect = document.getElementById('groupSelect');
+        const container = document.getElementById('sessionResult'); // الربط بـ id الموجود في ملفك
 
         if (!groupSelect || !container) return;
         const group = groupSelect.value;
@@ -279,8 +279,8 @@ body.dark-mode td {
                             <div style="font-weight: bold; margin-bottom: 8px;">
                                 ${isCurrent ? '🔴 الحصة الحالية:' : '📅 الحصة القادمة:'}
                             </div>
-                            <div>📖 المادة: ${session.course || session.subject || 'غير محدد'}</div>
-                            <div>📍 المكان: ${session.location || session.room || 'غير محدد'}</div>
+                            <div>📖 المادة: ${session.course || session.subject || session.module || 'غير محدد'}</div>
+                            <div>📍 المكان: ${session.location || session.room || session.salle || 'غير محدد'}</div>
                             <div>⏰ التوقيت: من ${session.start_time || ''} إلى ${session.end_time || ''}</div>
                             <div>👨‍🏫 حالة الأستاذ: 
                                 <span style="color: ${session.status === 'حاضر' ? '#28a745' : '#dc3545'}; font-weight: bold;">
@@ -295,8 +295,12 @@ body.dark-mode td {
             })
             .catch(err => {
                 console.error('Error:', err);
+                container.innerHTML = '<p style="text-align:center; color:red;">حدث خطأ أثناء جلب البيانات</p>';
             });
     }
-</script>
+
+    // تشغيل الدالة تلقائياً عند تحميل الصفحة لأول مرة
+    document.addEventListener('DOMContentLoaded', fetchSession);
+</script>   
 </body>
 </html>
