@@ -142,20 +142,28 @@ body.dark-mode td {
     </div>
 
     <!-- قسم الأساتذة -->
-    <div class="section">
-        <h2>تحديث حالة الأستاذ</h2>
+<div class="section">
+    <h2>👨‍🏫 تحديث حالة الأستاذ</h2>
+    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: auto;">
         <label for="profEmail">البريد الإلكتروني للأستاذ:</label>
-        <input type="email" id="profEmail" placeholder="مثال: prof1@univ.dz">
-
-        <label for="profStatus">الحالة:</label>
-        <select id="profStatus">
-            <option value="حاضر">حاضر</option>
-            <option value="غائب">غائب</option>
+        <input type="email" id="profEmail" placeholder="example@univ.dz" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+        
+        <!-- حقل كلمة المرور جديد -->
+        <label for="profPassword">كلمة المرور:</label>
+        <input type="password" id="profPassword" placeholder="******" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+        
+        <label for="profStatusSelect">الحالة:</label>
+        <select id="profStatusSelect" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+            <option value="حاضر">حاضر ✅</option>
+            <option value="غائب">غائب ❌</option>
         </select>
 
-        <button onclick="updateStatus()">تحديث الحالة</button>
-        <p id="updateMessage" style="text-align:center; font-weight:bold;"></p>
+        <button onclick="updateProfStatus()" style="padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">
+            تحديث الحالة
+        </button>
     </div>
+    <div id="updateMsg" style="text-align: center; margin-top: 10px; font-weight: bold;"></div>
+</div>
 </div>
 
 <script>
