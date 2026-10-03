@@ -225,9 +225,11 @@ body.dark-mode td {
     fetchSession();
 </script>
 <script>
+    // تفعيل وتذكر الوضع الداكن
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        document.getElementById('theme-toggle').innerText = '☀️ الوضع الفاتح';
+        const btn = document.getElementById('theme-toggle');
+        if (btn) btn.innerText = '☀️ الوضع الفاتح';
     }
 
     function toggleDarkMode() {
@@ -237,11 +239,63 @@ body.dark-mode td {
         
         if (body.classList.contains('dark-mode')) {
             localStorage.setItem('theme', 'dark');
-            btn.innerText = '☀️ الوضع الفاتح';
+            if (btn) btn.innerText = '☀️ الوضع الفاتح';
         } else {
             localStorage.setItem('theme', 'light');
-            btn.innerText = '🌙 الوضع الداكن';
+            if (btn) btn.innerText = '🌙 الوضع الداكن';
         }
+    }
+
+    // جلب وتنسيق جميع حصص اليوم (الحالية والقادمة)
+    function fetchSession() {
+        const groupSelect = document.getElementById('groupSelect') || document.querySelector('select');
+        const container = document.getElementById('session-info') || document.querySelector('.card, .section');
+
+        if (!groupSelect || !container) return;
+        const group = groupSelect.value;
+
+        fetch(`/get_session?group=${group}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data || data.length === 0 || data.error) {
+                    container.innerHTML = '<p style="text-align:center; padding:10px;">لا توجد حصص متبقية لهذا الفوج اليوم ☕</p>';
+                    return;
+                }
+
+                const sessions = Array.isArray(data) ? data : [data];
+                let htmlContent = '';
+
+                sessions.forEach((session, index) => {
+                    const isCurrent = index === 0;
+                    
+                    htmlContent += `
+                        <div style="
+                            padding: 15px; 
+                            margin-bottom: 15px; 
+                            border-radius: 10px; 
+                            border-right: 5px solid ${isCurrent ? '#28a745' : '#007bff'};
+                            background-color: ${isCurrent ? 'rgba(40, 167, 69, 0.1)' : 'rgba(0, 123, 255, 0.05)'};">
+                            
+                            <div style="font-weight: bold; margin-bottom: 8px;">
+                                ${isCurrent ? '🔴 الحصة الحالية:' : '📅 الحصة القادمة:'}
+                            </div>
+                            <div>📖 المادة: ${session.course || session.subject || 'غير محدد'}</div>
+                            <div>📍 المكان: ${session.location || session.room || 'غير محدد'}</div>
+                            <div>⏰ التوقيت: من ${session.start_time || ''} إلى ${session.end_time || ''}</div>
+                            <div>👨‍🏫 حالة الأستاذ: 
+                                <span style="color: ${session.status === 'حاضر' ? '#28a745' : '#dc3545'}; font-weight: bold;">
+                                    ${session.status || 'حاضر'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = htmlContent;
+            })
+            .catch(err => {
+                console.error('Error:', err);
+            });
     }
 </script>
 </body>
