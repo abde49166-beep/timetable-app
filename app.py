@@ -14,12 +14,12 @@ def home():
 
 @app.route('/api/get-current-session', methods=['GET'])
 def get_current_session():
-    student_group = request.args.get('group', 'فوج 1')
+    student_group = request.args.get('group', '1 فوج')
     
     now = datetime.now()
     current_day = now.strftime('%A')
     current_time = now.strftime('%H:%M')
-
+    
     try:
         response = requests.get(GOOGLE_SCRIPT_URL)
         data = response.json()
@@ -29,25 +29,28 @@ def get_current_session():
             
         schedule_rows = data['schedule'][1:]
         profs_map = data['profs']
-
-        current_session = None
+        
+        sessions = []
         for row in schedule_rows:
-            group, day, start, end, subject, location, prof_email = row[0], row[1], str(row[2]), str(row[3]), row[4], row[5], row[6]
+            group, day, start, end, subject, location, prof_email = row[0], row[1], row[2], row[3], row[4], row[5], row[6]
             
-            if str(group).strip() == student_group.strip() and str(day).strip() == current_day:
-                if str(start) <= current_time <= str(end):
+            # التصفية حسب الفوج واليوم
+            if str(group).strip() == student_group.strip() and str(day).strip().lower() == current_day.lower():
+                # جلب الحصص المتبقية لليوم (التي لم تنتهِ بعد)
+                if str(end) >= current_time:
                     prof_status = profs_map.get(prof_email, 'حاضر')
-                    
-                    current_session = {
+                    sessions.append({
                         'subject': subject,
                         'location': location,
                         'prof_status': prof_status,
                         'start': start,
                         'end': end
-                    }
-                    break
-
-        return jsonify({'session': current_session, 'time': current_time, 'day': current_day})
+                    })
+        
+        # ترتيب الحصص حسب وقت البدء
+        sessions.sort(key=lambda x: x['start'])
+        return jsonify(sessions)
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
