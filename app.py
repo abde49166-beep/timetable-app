@@ -6,7 +6,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 # ضع رابط Web App الذي نسخته من Google Apps Script بين العلامتين " "
-GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrF4bv7Bb08LriRQwNtwO4Sek_QrmdMR4fHVSt7Z9uGpdD5iXvKysmEGSO5NqxaHRbfg/exec"
+GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-OAOHP7uJ70loNibsReSkQklKn7ayoqtkKQXPzHF5coKBU3SJnU7qYkGhbZMXXF6qMg/exec"
 
 @app.route('/')
 def home():
