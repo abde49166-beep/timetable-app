@@ -1,4 +1,4 @@
 Flask
 requests
 pandas
-gunicorn﻿
+gunicorn
