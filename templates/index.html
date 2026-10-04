@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,46 +9,143 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            background-color: #f4f6f9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root {
+            --bg-primary: #f4f6f9;
+            --text-primary: #212529;
+            --card-bg: #ffffff;
+            --table-header-bg: #f8f9fa;
+            --table-hover: #f1f3f5;
+            --border-color: #e9ecef;
+            --modal-bg: #ffffff;
+            --header-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         }
+
+        [data-theme="dark"] {
+            --bg-primary: #121212;
+            --text-primary: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --table-header-bg: #2d2d2d;
+            --table-hover: #2a2a2a;
+            --border-color: #333333;
+            --modal-bg: #252525;
+            --header-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
         .header-bg {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: var(--header-gradient);
             color: white;
             padding: 30px 0;
             border-bottom-left-radius: 20px;
             border-bottom-right-radius: 20px;
             margin-bottom: 30px;
+            position: relative;
         }
+
         .card-custom {
-            border: none;
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s, background-color 0.3s;
         }
+
         .card-custom:hover {
             transform: translateY(-3px);
         }
+
+        /* الجدول في الوضعين */
+        .table {
+            color: var(--text-primary) !important;
+            border-color: var(--border-color);
+        }
+
+        .table-light {
+            background-color: var(--table-header-bg) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: var(--table-hover) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* الحفاظ التام على ألوان الحاضر والغائب والخرائط */
         .badge-present {
-            background-color: #28a745;
-            color: white;
+            background-color: #28a745 !important;
+            color: white !important;
+            font-size: 0.9rem;
+            padding: 6px 12px;
         }
+
         .badge-absent {
-            background-color: #dc3545;
-            color: white;
+            background-color: #dc3545 !important;
+            color: white !important;
+            font-size: 0.9rem;
+            padding: 6px 12px;
         }
+
         .btn-specialty {
             padding: 12px 25px;
             font-size: 1.1rem;
             border-radius: 10px;
             font-weight: bold;
         }
+
+        /* زر التحويل بين الوضعين */
+        .theme-toggle-btn {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: background 0.3s;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* النافذة المنبثقة Modal */
+        .modal-content {
+            background-color: var(--modal-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .form-control, .form-select {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
+            color: var(--text-primary);
+        }
     </style>
 </head>
 <body>
 
     <div class="header-bg text-center">
+        <!-- زر التبديل للوضع الداكن -->
+        <button class="theme-toggle-btn" onclick="toggleTheme()">
+            <i id="themeIcon" class="fa-solid fa-moon me-1"></i>
+            <span id="themeText">الوضع الداكن</span>
+        </button>
+
         <h2><i class="fa-solid fa-graduation-cap me-2"></i>منصة جدول التوقيت الجامعي</h2>
         <p class="mb-0">متابعة الحصص ومواقع القاعات وحالة الأساتذة المباشرة</p>
     </div>
@@ -58,7 +155,7 @@
         <div class="row justify-content-center mb-4">
             <div class="col-md-10 text-center">
                 <div class="card card-custom p-4">
-                    <h5 class="mb-3 text-secondary">اختر نوع الاستخدام للبدء:</h5>
+                    <h5 class="mb-3">اختر نوع الاستخدام للبدء:</h5>
                     <div class="d-flex justify-content-center gap-3 flex-wrap">
                         <button onclick="selectSpecialty('تسيير المنشآت الرياضية')" class="btn btn-primary btn-specialty">
                             <i class="fa-solid fa-building-columns me-2"></i>تسيير المنشآت الرياضية
@@ -66,7 +163,7 @@
                         <button onclick="selectSpecialty('تدريب رياضي')" class="btn btn-success btn-specialty">
                             <i class="fa-solid fa-dumbbell me-2"></i>تدريب رياضي
                         </button>
-                        <button class="btn btn-outline-dark btn-specialty" data-bs-toggle="modal" data-bs-target="#profModal">
+                        <button class="btn btn-outline-info btn-specialty" data-bs-toggle="modal" data-bs-target="#profModal">
                             <i class="fa-solid fa-user-tie me-2"></i>فضاء الأساتذة
                         </button>
                     </div>
@@ -77,12 +174,12 @@
         <!-- ملخص الحصة القادمة -->
         <div id="nextClassContainer" class="row justify-content-center mb-4 d-none">
             <div class="col-md-10">
-                <div class="card border-primary card-custom p-3 bg-white">
+                <div class="card card-custom p-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span class="badge bg-primary mb-2">الحصة القادمة/الحالية</span>
-                            <h4 id="nextSubject" class="text-dark mb-1">--</h4>
-                            <p id="nextDetails" class="text-muted mb-0">--</p>
+                            <h4 id="nextSubject" class="mb-1">--</h4>
+                            <p id="nextDetails" class="text-secondary mb-0">--</p>
                         </div>
                         <div id="nextMapBtn"></div>
                     </div>
@@ -96,8 +193,8 @@
                 <div class="card card-custom p-4">
                     <h4 id="selectedTitle" class="text-center mb-4 text-primary"></h4>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle text-center">
-                            <thead class="table-light">
+                        <table class="table align-middle text-center">
+                            <thead>
                                 <tr>
                                     <th>الفوج</th>
                                     <th>اليوم</th>
@@ -124,7 +221,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fa-solid fa-user-lock me-2"></i>تسجيل دخول الأستاذ</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="profForm">
@@ -174,7 +271,6 @@
         // إيجاد حالة الأستاذ بناءً على اسمه في الجدول
         function getProfStatus(profName) {
             for (let email in professorsMap) {
-                // المطابقة استناداً لنهاية الاسم/اللقب
                 if (email.includes("hamani") && profName.includes("حماني")) return professorsMap[email];
                 if (email.includes("aittahar") && profName.includes("أيت طاهر")) return professorsMap[email];
                 if (email.includes("haddach") && profName.includes("حداش")) return professorsMap[email];
@@ -215,7 +311,7 @@
             });
 
             if (filtered.length > 0) {
-                const next = filtered[0]; // عرض أول حصة كحصة قادمة كمثال
+                const next = filtered[0];
                 document.getElementById('nextClassContainer').classList.remove('d-none');
                 document.getElementById('nextSubject').innerText = next.subject + " (" + next.group + ")";
                 document.getElementById('nextDetails').innerText = `الأستاذ: ${next.prof} | التوقيت: ${next.startTime} - ${next.endTime} | المكان: ${next.room}`;
@@ -247,7 +343,7 @@
                 
                 if (data.success) {
                     alertDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-                    await loadData(); // إعادة تحميل البيانات
+                    await loadData();
                 } else {
                     alertDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
                 }
@@ -256,8 +352,37 @@
             }
         });
 
-        // تشغيل التحميل الأولي
-        window.onload = loadData;
+        // التبديل بين الوضع الداكن والوضع العادي وحفظ الخيار
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            updateThemeUI(newTheme);
+        }
+
+        function updateThemeUI(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            
+            if (theme === 'dark') {
+                icon.className = 'fa-solid fa-sun me-1';
+                text.innerText = 'الوضع المضيء';
+            } else {
+                icon.className = 'fa-solid fa-moon me-1';
+                text.innerText = 'الوضع الداكن';
+            }
+        }
+
+        // تطبيق الوضع المحفوظ عند بداية التحميل
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+            loadData();
+        };
     </script>
 </body>
 </html>
