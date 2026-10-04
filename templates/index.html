@@ -3,312 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تطبيق توجيه الطلاب الجامعيين</title>
+    <title>جدول التوقيت والأساتذة</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
+            background-color: #f4f6f9;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            color: #333;
         }
-/* تنسيقات الوضع الداكن الشاملة */
-body.dark-mode {
-    background-color: #121212 !important;
-    color: #ffffff !important;
-}
-
-body.dark-mode .container,
-body.dark-mode .section,
-body.dark-mode div[class*="card"],
-body.dark-mode fieldset,
-body.dark-mode form {
-    background-color: #1e1e1e !important;
-    color: #ffffff !important;
-    border-color: #333333 !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
-}
-
-body.dark-mode h1, 
-body.dark-mode h2, 
-body.dark-mode h3, 
-body.dark-mode label, 
-body.dark-mode p,
-body.dark-mode span {
-    color: #e0e0e0 !important;
-}
-
-body.dark-mode select, 
-body.dark-mode input, 
-body.dark-mode textarea {
-    background-color: #2a2a2a !important;
-    color: #ffffff !important;
-    border: 1px solid #444444 !important;
-}
-
-body.dark-mode div[style*="background"] {
-    background-color: #252525 !important;
-    color: #ffffff !important;
-}
-
-body.dark-mode th {
-    background-color: #2c2c2c !important;
-    color: #00d4ff !important;
-}
-
-body.dark-mode td {
-    border-color: #333 !important;
-}
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h1, h2 {
-            text-align: center;
-            color: #2c3e50;
-        }
-        .section {
-            margin-bottom: 25px;
-            padding: 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            background-color: #fafafa;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 8px;
-        }
-        select, input, button {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-        button {
-            background-color: #3498db;
+        .header-bg {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
-            font-weight: bold;
-            cursor: pointer;
+            padding: 30px 0;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            margin-bottom: 30px;
+        }
+        .card-custom {
             border: none;
-            transition: background 0.3s;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
         }
-        button:hover {
-            background-color: #2980b9;
+        .card-custom:hover {
+            transform: translateY(-3px);
         }
-        .card {
-            background: #e8f4f8;
-            border-right: 5px solid #3498db;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
+        .badge-present {
+            background-color: #28a745;
+            color: white;
         }
-        .status-present {
-            color: #27ae60;
-            font-weight: bold;
+        .badge-absent {
+            background-color: #dc3545;
+            color: white;
         }
-        .status-absent {
-            color: #e74c3c;
+        .btn-specialty {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 10px;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-<button id="theme-toggle" onclick="toggleDarkMode()" style="padding: 8px 16px; cursor: pointer; border-radius: 20px; border: none; background-color: #007bff; color: white; margin-bottom: 15px;">
-    🌙 الوضع الداكن
-</button>
-<div class="container">
-    <h1>🎓 توجيه الطلاب الجامعيين</h1>
 
-    <!-- قسم الطلاب -->
-    <div class="section">
-        <h2>جدول الحصص المباشر</h2>
-        <label for="groupSelect">اختر الفوج الدراسي:</label>
-        <select id="groupSelect" onchange="fetchSession()">
-            <option value="فوج 1">فوج 1</option>
-            <option value="فوج 2">فوج 2</option>
-        </select>
+    <div class="header-bg text-center">
+        <h2><i class="fa-solid fa-graduation-cap me-2"></i>منصة جدول التوقيت الجامعي</h2>
+        <p class="mb-0">متابعة الحصص ومواقع القاعات وحالة الأساتذة المباشرة</p>
+    </div>
 
-        <div id="sessionResult">
-            <p style="text-align:center;">جاري تحميل البيانات...</p>
+    <div class="container mb-5">
+        <!-- قسم اختيار التخصص أو دخول الأستاذ -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-10 text-center">
+                <div class="card card-custom p-4">
+                    <h5 class="mb-3 text-secondary">اختر نوع الاستخدام للبدء:</h5>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <button onclick="selectSpecialty('تسيير المنشآت الرياضية')" class="btn btn-primary btn-specialty">
+                            <i class="fa-solid fa-building-columns me-2"></i>تسيير المنشآت الرياضية
+                        </button>
+                        <button onclick="selectSpecialty('تدريب رياضي')" class="btn btn-success btn-specialty">
+                            <i class="fa-solid fa-dumbbell me-2"></i>تدريب رياضي
+                        </button>
+                        <button class="btn btn-outline-dark btn-specialty" data-bs-toggle="modal" data-bs-target="#profModal">
+                            <i class="fa-solid fa-user-tie me-2"></i>فضاء الأساتذة
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ملخص الحصة القادمة -->
+        <div id="nextClassContainer" class="row justify-content-center mb-4 d-none">
+            <div class="col-md-10">
+                <div class="card border-primary card-custom p-3 bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary mb-2">الحصة القادمة/الحالية</span>
+                            <h4 id="nextSubject" class="text-dark mb-1">--</h4>
+                            <p id="nextDetails" class="text-muted mb-0">--</p>
+                        </div>
+                        <div id="nextMapBtn"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول الحصص -->
+        <div id="scheduleContainer" class="row justify-content-center d-none">
+            <div class="col-md-10">
+                <div class="card card-custom p-4">
+                    <h4 id="selectedTitle" class="text-center mb-4 text-primary"></h4>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle text-center">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الفوج</th>
+                                    <th>اليوم</th>
+                                    <th>المادة</th>
+                                    <th>الأستاذ</th>
+                                    <th>التوقيت</th>
+                                    <th>المكان (Google Maps)</th>
+                                    <th>حالة الأستاذ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleBody">
+                                <!-- سيتم ملؤه بالبيانات ديناميكياً -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- قسم الأساتذة -->
-<div class="section">
-    <h2>👨‍🏫 تحديث حالة الأستاذ</h2>
-    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: auto;">
-        <label for="profEmail">البريد الإلكتروني للأستاذ:</label>
-        <input type="email" id="profEmail" placeholder="example@univ.dz" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
-        
-        <!-- حقل كلمة المرور جديد -->
-        <label for="profPassword">كلمة المرور:</label>
-        <input type="password" id="profPassword" placeholder="******" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
-        
-        <label for="profStatusSelect">الحالة:</label>
-        <select id="profStatusSelect" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
-            <option value="حاضر">حاضر ✅</option>
-            <option value="غائب">غائب ❌</option>
-        </select>
-
-        <button onclick="updateProfStatus()" style="padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 5px;">
-            تحديث الحالة
-        </button>
-    </div>
-    <div id="updateMsg" style="text-align: center; margin-top: 10px; font-weight: bold;"></div>
-</div>
-</div>
-
-<script>
-    async function fetchSession() {
-        const group = document.getElementById('groupSelect').value;
-        const resultDiv = document.getElementById('sessionResult');
-        resultDiv.innerHTML = "<p style='text-align:center;'>جاري التحقق من الجدول...</p>";
-
-        try {
-            const response = await fetch(`/api/get-current-session?group=${encodeURIComponent(group)}`);
-            const data = await response.json();
-
-            if (data.session) {
-                const statusClass = data.session.prof_status === 'حاضر' ? 'status-present' : 'status-absent';
-                resultDiv.innerHTML = `
-                    <div class="card">
-                        <h3>📖 المادة: ${data.session.subject}</h3>
-                        <p>📍 <strong>المكان:</strong> ${data.session.location}</p>
-                        <p>⏰ <strong>التوقيت:</strong> من ${data.session.start} إلى ${data.session.end}</p>
-                        <p>👨‍🏫 <strong>حالة الأستاذ:</strong> <span class="${statusClass}">${data.session.prof_status}</span></p>
-                    </div>
-                `;
-            } else {
-                resultDiv.innerHTML = `<p style='text-align:center; color: #7f8c8d;'>لا توجد حصة حالية لهذا الفوج في الوقت الحالي (${data.day} - ${data.time}).</p>`;
-            }
-        } catch (error) {
-            resultDiv.innerHTML = "<p style='text-align:center; color:red;'>حدث خطأ أثناء جلب البيانات.</p>";
-        }
-    }
-
-    async function updateStatus() {
-        const email = document.getElementById('profEmail').value;
-        const status = document.getElementById('profStatus').value;
-        const msg = document.getElementById('updateMessage');
-
-        if (!email) {
-            msg.style.color = "red";
-            msg.innerText = "يرجى إدخال البريد الإلكتروني";
-            return;
-        }
-
-        msg.style.color = "black";
-        msg.innerText = "جاري التحديث...";
-
-        try {
-            const response = await fetch('/api/update-status', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ email: email, status: status })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                msg.style.color = "green";
-                msg.innerText = "تم تحديث الحالة بنجاح في Google Sheets!";
-                fetchSession();
-            } else {
-                msg.style.color = "red";
-                msg.innerText = "حدث خطأ في التحديث.";
-            }
-        } catch (error) {
-            msg.style.color = "red";
-            msg.innerText = "فشل الاتصال بالسيرفر.";
-        }
-    }
-
-    fetchSession();
-</script>
- <script>
-    // تفعيل وتذكر الوضع الداكن
-    if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-        const btn = document.getElementById('theme-toggle');
-        if (btn) btn.innerText = '☀️ الوضع الفاتح';
-    }
-
-    function toggleDarkMode() {
-        const body = document.body;
-        const btn = document.getElementById('theme-toggle');
-        body.classList.toggle('dark-mode');
-        
-        if (body.classList.contains('dark-mode')) {
-            localStorage.setItem('theme', 'dark');
-            if (btn) btn.innerText = '☀️ الوضع الفاتح';
-        } else {
-            localStorage.setItem('theme', 'light');
-            if (btn) btn.innerText = '🌙 الوضع الداكن';
-        }
-    }
-
-    // جلب وتنسيق جميع حصص اليوم (الحالية والقادمة)
-    function fetchSession() {
-        const groupSelect = document.getElementById('groupSelect');
-        const container = document.getElementById('sessionResult');
-
-        if (!groupSelect || !container) return;
-        const group = groupSelect.value;
-
-        fetch(`/api/get-current-session?group=${encodeURIComponent(group)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (!data || data.length === 0 || data.error) {
-                    container.innerHTML = '<p style="text-align:center; padding:10px;">لا توجد حصص متبقية لهذا الفوج اليوم ☕</p>';
-                    return;
-                }
-
-                const sessions = Array.isArray(data) ? data : [data];
-                let htmlContent = '';
-
-                sessions.forEach((session, index) => {
-                    const isCurrent = index === 0;
-                    
-                    htmlContent += `
-                        <div style="
-                            padding: 15px; 
-                            margin-bottom: 15px; 
-                            border-radius: 10px; 
-                            border-right: 5px solid ${isCurrent ? '#28a745' : '#007bff'};
-                            background-color: ${isCurrent ? 'rgba(40, 167, 69, 0.1)' : 'rgba(0, 123, 255, 0.05)'};">
-                            
-                            <div style="font-weight: bold; margin-bottom: 8px;">
-                                ${isCurrent ? '🔴 الحصة الحالية:' : '📅 الحصة القادمة:'}
-                            </div>
-                            <div>📖 المادة: ${session.subject || 'غير محدد'}</div>
-                            <div>📍 المكان: ${session.location || 'غير محدد'}</div>
-                            <div>⏰ التوقيت: من ${session.start || ''} إلى ${session.end || ''}</div>
-                            <div>👨‍🏫 حالة الأستاذ: 
-                                <span style="color: ${session.prof_status === 'حاضر' ? '#28a745' : '#dc3545'}; font-weight: bold;">
-                                    ${session.prof_status || 'حاضر'}
-                                </span>
-                            </div>
+    <!-- نافذة دخول الأستاذ Modal -->
+    <div class="modal fade" id="profModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-user-lock me-2"></i>تسجيل دخول الأستاذ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="profForm">
+                        <div class="mb-3">
+                            <label class="form-label">البريد الإلكتروني</label>
+                            <input type="email" id="profEmail" class="form-control" placeholder="example@univ.dz" required>
                         </div>
-                    `;
-                });
+                        <div class="mb-3">
+                            <label class="form-label">كلمة المرور</label>
+                            <input type="password" id="profPassword" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">تحديث الحالة</label>
+                            <select id="profStatus" class="form-select">
+                                <option value="حاضر">حاضر ✅</option>
+                                <option value="غائب">غائب ❌</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">تحديث الحالة الآن</button>
+                    </form>
+                    <div id="profAlert" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                container.innerHTML = htmlContent;
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                container.innerHTML = '<p style="text-align:center; color:red;">حدث خطأ أثناء جلب البيانات</p>';
+    <!-- Bootstrap JS & Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let fullSchedule = [];
+        let professorsMap = {};
+
+        // جلب البيانات فور تحميل الصفحة
+        async function loadData() {
+            try {
+                const res = await fetch('/api/schedule');
+                const data = await res.json();
+                if (data.success) {
+                    fullSchedule = data.schedule;
+                    professorsMap = data.professors;
+                }
+            } catch (err) {
+                console.error("خطأ في جلب البيانات:", err);
+            }
+        }
+
+        // إيجاد حالة الأستاذ بناءً على اسمه في الجدول
+        function getProfStatus(profName) {
+            for (let email in professorsMap) {
+                // المطابقة استناداً لنهاية الاسم/اللقب
+                if (email.includes("hamani") && profName.includes("حماني")) return professorsMap[email];
+                if (email.includes("aittahar") && profName.includes("أيت طاهر")) return professorsMap[email];
+                if (email.includes("haddach") && profName.includes("حداش")) return professorsMap[email];
+                if (email.includes("toutaoui") && profName.includes("طوطاوي")) return professorsMap[email];
+                if (email.includes("zaoui") && profName.includes("زاوي")) return professorsMap[email];
+            }
+            return "حاضر";
+        }
+
+        // عرض جدول التخصص المختار
+        function selectSpecialty(spec) {
+            document.getElementById('selectedTitle').innerText = "جدول توقيت تخصص: " + spec;
+            document.getElementById('scheduleContainer').classList.remove('d-none');
+            
+            const filtered = fullSchedule.filter(item => item.specialty.includes(spec));
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
+
+            filtered.forEach(item => {
+                const status = getProfStatus(item.prof);
+                const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td><span class="badge bg-secondary">${item.group}</span></td>
+                        <td>${item.day}</td>
+                        <td class="fw-bold">${item.subject}</td>
+                        <td>${item.prof}</td>
+                        <td>${item.startTime} - ${item.endTime}</td>
+                        <td>
+                            <a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-location-dot me-1"></i>${item.room}
+                            </a>
+                        </td>
+                        <td><span class="badge ${badgeClass}">${status}</span></td>
+                    </tr>
+                `;
             });
-    }
 
-    // تشغيل الدالة تلقائياً عند تحميل الصفحة
-    document.addEventListener('DOMContentLoaded', fetchSession);
-</script> 
+            if (filtered.length > 0) {
+                const next = filtered[0]; // عرض أول حصة كحصة قادمة كمثال
+                document.getElementById('nextClassContainer').classList.remove('d-none');
+                document.getElementById('nextSubject').innerText = next.subject + " (" + next.group + ")";
+                document.getElementById('nextDetails').innerText = `الأستاذ: ${next.prof} | التوقيت: ${next.startTime} - ${next.endTime} | المكان: ${next.room}`;
+                document.getElementById('nextMapBtn').innerHTML = `
+                    <a href="${next.mapUrl}" target="_blank" class="btn btn-danger">
+                        <i class="fa-solid fa-map-location-dot me-2"></i>فتح في Maps
+                    </a>
+                `;
+            }
+        }
+
+        // تحديث حالة الأستاذ
+        document.getElementById('profForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('profEmail').value;
+            const password = document.getElementById('profPassword').value;
+            const status = document.getElementById('profStatus').value;
+            const alertDiv = document.getElementById('profAlert');
+
+            alertDiv.innerHTML = '<div class="alert alert-info">جاري التحديث...</div>';
+
+            try {
+                const res = await fetch('/api/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, status })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alertDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    await loadData(); // إعادة تحميل البيانات
+                } else {
+                    alertDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            } catch (err) {
+                alertDiv.innerHTML = '<div class="alert alert-danger">حدث خطأ أثناء الاتصال بالسيرفر</div>';
+            }
+        });
+
+        // تشغيل التحميل الأولي
+        window.onload = loadData;
+    </script>
 </body>
 </html>
