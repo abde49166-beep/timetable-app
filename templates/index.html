@@ -13,20 +13,22 @@
             --bg-primary: #f4f6f9;
             --text-primary: #212529;
             --card-bg: #ffffff;
-            --table-header-bg: #f8f9fa;
+            --table-header-bg: #e9ecef;
+            --table-row-bg: #ffffff;
             --table-hover: #f1f3f5;
-            --border-color: #e9ecef;
+            --border-color: #dee2e6;
             --modal-bg: #ffffff;
             --header-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         }
 
         [data-theme="dark"] {
             --bg-primary: #121212;
-            --text-primary: #e0e0e0;
+            --text-primary: #f8f9fa;
             --card-bg: #1e1e1e;
-            --table-header-bg: #2d2d2d;
-            --table-hover: #2a2a2a;
-            --border-color: #333333;
+            --table-header-bg: #2d3748;
+            --table-row-bg: #1e1e1e;
+            --table-hover: #2d2d2d;
+            --border-color: #383838;
             --modal-bg: #252525;
             --header-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
         }
@@ -41,11 +43,10 @@
         .header-bg {
             background: var(--header-gradient);
             color: white;
-            padding: 30px 0;
+            padding: 25px 15px;
             border-bottom-left-radius: 20px;
             border-bottom-right-radius: 20px;
             margin-bottom: 30px;
-            position: relative;
         }
 
         .card-custom {
@@ -53,42 +54,45 @@
             color: var(--text-primary);
             border: 1px solid var(--border-color);
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
             transition: transform 0.2s, background-color 0.3s;
         }
 
-        .card-custom:hover {
-            transform: translateY(-3px);
-        }
-
-        /* الجدول في الوضعين */
+        /* إصلاح الجدول كاملاً في الوضع الداكن والعادي */
         .table {
             color: var(--text-primary) !important;
-            border-color: var(--border-color);
+            border-color: var(--border-color) !important;
+            margin-bottom: 0;
         }
 
-        .table-light {
+        .table th {
             background-color: var(--table-header-bg) !important;
             color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
         }
 
-        .table-hover tbody tr:hover {
-            background-color: var(--table-hover) !important;
+        .table td {
+            background-color: var(--table-row-bg) !important;
             color: var(--text-primary) !important;
+            border-color: var(--border-color) !important;
         }
 
-        /* الحفاظ التام على ألوان الحاضر والغائب والخرائط */
+        .table tbody tr:hover td {
+            background-color: var(--table-hover) !important;
+        }
+
+        /* الحفاظ التام على ألوان الحالة الحاضر والغائب والخرائط */
         .badge-present {
             background-color: #28a745 !important;
-            color: white !important;
-            font-size: 0.9rem;
+            color: #ffffff !important;
+            font-size: 0.85rem;
             padding: 6px 12px;
         }
 
         .badge-absent {
             background-color: #dc3545 !important;
-            color: white !important;
-            font-size: 0.9rem;
+            color: #ffffff !important;
+            font-size: 0.85rem;
             padding: 6px 12px;
         }
 
@@ -99,23 +103,21 @@
             font-weight: bold;
         }
 
-        /* زر التحويل بين الوضعين */
+        /* زر التحويل بين الوضعين مرتب داخل الهيدر */
         .theme-toggle-btn {
-            position: absolute;
-            top: 15px;
-            left: 20px;
             background: rgba(255, 255, 255, 0.2);
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
-            padding: 8px 15px;
+            padding: 6px 16px;
             border-radius: 20px;
             cursor: pointer;
             backdrop-filter: blur(5px);
-            transition: background 0.3s;
+            font-size: 0.9rem;
+            transition: all 0.3s;
         }
 
         .theme-toggle-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.35);
         }
 
         /* النافذة المنبثقة Modal */
@@ -139,15 +141,19 @@
 </head>
 <body>
 
-    <div class="header-bg text-center">
-        <!-- زر التبديل للوضع الداكن -->
-        <button class="theme-toggle-btn" onclick="toggleTheme()">
-            <i id="themeIcon" class="fa-solid fa-moon me-1"></i>
-            <span id="themeText">الوضع الداكن</span>
-        </button>
+    <div class="header-bg">
+        <div class="container d-flex flex-column align-items-center text-center position-relative">
+            <!-- زر التبديل منظم بأعلى اليسار أو المنتصف للشاشات الصغيرة -->
+            <div class="w-100 d-flex justify-content-end mb-2">
+                <button class="theme-toggle-btn" onclick="toggleTheme()">
+                    <i id="themeIcon" class="fa-solid fa-moon me-1"></i>
+                    <span id="themeText">الوضع الداكن</span>
+                </button>
+            </div>
 
-        <h2><i class="fa-solid fa-graduation-cap me-2"></i>منصة جدول التوقيت الجامعي</h2>
-        <p class="mb-0">متابعة الحصص ومواقع القاعات وحالة الأساتذة المباشرة</p>
+            <h2><i class="fa-solid fa-graduation-cap me-2"></i>منصة جدول التوقيت الجامعي</h2>
+            <p class="mb-0 text-white-50">متابعة الحصص ومواقع القاعات وحالة الأساتذة المباشرة</p>
+        </div>
     </div>
 
     <div class="container mb-5">
@@ -254,7 +260,6 @@
         let fullSchedule = [];
         let professorsMap = {};
 
-        // جلب البيانات فور تحميل الصفحة
         async function loadData() {
             try {
                 const res = await fetch('/api/schedule');
@@ -268,7 +273,6 @@
             }
         }
 
-        // إيجاد حالة الأستاذ بناءً على اسمه في الجدول
         function getProfStatus(profName) {
             for (let email in professorsMap) {
                 if (email.includes("hamani") && profName.includes("حماني")) return professorsMap[email];
@@ -280,7 +284,6 @@
             return "حاضر";
         }
 
-        // عرض جدول التخصص المختار
         function selectSpecialty(spec) {
             document.getElementById('selectedTitle').innerText = "جدول توقيت تخصص: " + spec;
             document.getElementById('scheduleContainer').classList.remove('d-none');
@@ -323,7 +326,6 @@
             }
         }
 
-        // تحديث حالة الأستاذ
         document.getElementById('profForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('profEmail').value;
@@ -352,7 +354,6 @@
             }
         });
 
-        // التبديل بين الوضع الداكن والوضع العادي وحفظ الخيار
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -376,7 +377,6 @@
             }
         }
 
-        // تطبيق الوضع المحفوظ عند بداية التحميل
         window.onload = () => {
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
