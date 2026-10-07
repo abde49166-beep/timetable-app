@@ -250,8 +250,6 @@
         let fullSchedule = [];
         let professorsMap = {};
 
-        const daysList = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
-
         async function loadData() {
             try {
                 const res = await fetch('/api/schedule');
@@ -294,7 +292,7 @@
                         <td>${item.day}</td>
                         <td class="fw-bold">${item.subject}</td>
                         <td>${item.prof}</td>
-                        <td>${item.startTime} -${item.endTime}</td>
+                        <td>${item.startTime} - ${item.endTime}</td>
                         <td>
                             <a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
                                 <i class="fa-solid fa-location-dot me-1"></i>${item.room}
@@ -305,17 +303,19 @@
                 `;
             });
 
-            // معرفة الحصة القادمة بدقة وبدون أخطاء
+            // إعطاء الأولوية لمطابقة اليوم الحالي أو إتاحة حصة يوم الخميس
             const now = new Date();
-            const currentDayNumber = now.getDay(); // 0 = Sunday, 1 = Monday ... 4 = Thursday
+            const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+            const todayName = days[now.getDay()];
+
+            let nextClass = filtered.find(item => item.day && item.day.trim() === todayName);
             
-            let targetDay = "الأحد";
-            if (currentDayNumber >= 0 && currentDayNumber <= 4) {
-                targetDay = daysList[currentDayNumber];
+            // إذا لم تكن هناك حصة لليوم، ابحث عن حصة يوم الخميس
+            if (!nextClass) {
+                nextClass = filtered.find(item => item.day && item.day.trim().includes("الخميس"));
             }
 
-            // البحث عن أول حصة تطابق اليوم الحالي أو أول حصة متوفرة في القائمة
-            let nextClass = filtered.find(item => item.day && item.day.trim().includes(targetDay));
+            // خيار احتياطي لتنفيذ العرض
             if (!nextClass && filtered.length > 0) {
                 nextClass = filtered[0];
             }
@@ -323,8 +323,72 @@
             if (nextClass) {
                 document.getElementById('nextClassContainer').classList.remove('d-none');
                 document.getElementById('nextSubject').innerText = `${nextClass.subject} (${nextClass.group})`;
-                document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day} | الأستاذ: ${nextClass.prof} \vert{} التوقيت: ${nextClass.startTime} - ${nextClass.endTime} \vert{} المكان: ${nextClass.room}`;
+                document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day} | الأستاذ: ${nextClass.prof} | التوقيت: ${nextClass.startTime} - ${nextClass.endTime} | المكان: ${nextClass.room}`;
                 document.getElementById('nextMapBtn').innerHTML = `
                     <a href="${nextClass.mapUrl}" target="_blank" class="btn btn-danger">
-                        <i class="fa-solid fa
-                        
+                        <i class="fa-solid fa-map-location-dot me-2"></i>فتح في Maps
+                    </a>
+                `;
+            }
+        }
+
+        document.getElementById('profForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('profEmail').value;
+            const password = document.getElementById('profPassword').value;
+            const status = document.getElementById('profStatus').value;
+            const alertDiv = document.getElementById('profAlert');
+
+            alertDiv.innerHTML = '<div class="alert alert-info">جاري التحديث...</div>';
+
+            try {
+                const res = await fetch('/api/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, status })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alertDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    await loadData();
+                } else {
+                    alertDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            } catch (err) {
+                alertDiv.innerHTML = '<div class="alert alert-danger">حدث خطأ أثناء الاتصال بالسيرفر</div>';
+            }
+        });
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            updateThemeUI(newTheme);
+        }
+
+        function updateThemeUI(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            
+            if (theme === 'dark') {
+                icon.className = 'fa-solid fa-sun me-1';
+                text.innerText = 'الوضع المضيء';
+            } else {
+                icon.className = 'fa-solid fa-moon me-1';
+                text.innerText = 'الوضع الداكن';
+            }
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+            loadData();
+        };
+    </script>
+</body>
+</html>
