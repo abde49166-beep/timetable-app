@@ -58,7 +58,6 @@
             transition: transform 0.2s, background-color 0.3s;
         }
 
-        /* إصلاح الجدول كاملاً في الوضع الداكن والعادي */
         .table {
             color: var(--text-primary) !important;
             border-color: var(--border-color) !important;
@@ -81,7 +80,6 @@
             background-color: var(--table-hover) !important;
         }
 
-        /* الحفاظ التام على ألوان الحالة الحاضر والغائب والخرائط */
         .badge-present {
             background-color: #28a745 !important;
             color: #ffffff !important;
@@ -103,7 +101,6 @@
             font-weight: bold;
         }
 
-        /* زر التحويل بين الوضعين مرتب داخل الهيدر */
         .theme-toggle-btn {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -120,7 +117,6 @@
             background: rgba(255, 255, 255, 0.35);
         }
 
-        /* النافذة المنبثقة Modal */
         .modal-content {
             background-color: var(--modal-bg);
             color: var(--text-primary);
@@ -132,18 +128,12 @@
             color: var(--text-primary);
             border-color: var(--border-color);
         }
-
-        .form-control:focus, .form-select:focus {
-            background-color: var(--card-bg);
-            color: var(--text-primary);
-        }
     </style>
 </head>
 <body>
 
     <div class="header-bg">
         <div class="container d-flex flex-column align-items-center text-center position-relative">
-            <!-- زر التبديل منظم بأعلى اليسار أو المنتصف للشاشات الصغيرة -->
             <div class="w-100 d-flex justify-content-end mb-2">
                 <button class="theme-toggle-btn" onclick="toggleTheme()">
                     <i id="themeIcon" class="fa-solid fa-moon me-1"></i>
@@ -157,7 +147,7 @@
     </div>
 
     <div class="container mb-5">
-        <!-- قسم اختيار التخصص أو دخول الأستاذ -->
+        <!-- قسم اختيار التخصص -->
         <div class="row justify-content-center mb-4">
             <div class="col-md-10 text-center">
                 <div class="card card-custom p-4">
@@ -177,13 +167,13 @@
             </div>
         </div>
 
-        <!-- ملخص الحصة القادمة -->
+        <!-- ملخص الحصة القادمة / الحالية -->
         <div id="nextClassContainer" class="row justify-content-center mb-4 d-none">
             <div class="col-md-10">
                 <div class="card card-custom p-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <span class="badge bg-primary mb-2">الحصة القادمة/الحالية</span>
+                            <span id="nextBadge" class="badge bg-primary mb-2">الحصة القادمة/الحالية</span>
                             <h4 id="nextSubject" class="mb-1">--</h4>
                             <p id="nextDetails" class="text-secondary mb-0">--</p>
                         </div>
@@ -212,7 +202,7 @@
                                 </tr>
                             </thead>
                             <tbody id="scheduleBody">
-                                <!-- سيتم ملؤه بالبيانات ديناميكياً -->
+                                <!-- البيانات تُملأ ديناميكياً -->
                             </tbody>
                         </table>
                     </div>
@@ -260,6 +250,16 @@
         let fullSchedule = [];
         let professorsMap = {};
 
+        const daysMap = {
+            0: "الأحد",
+            1: "الإثنين",
+            2: "الثلاثاء",
+            3: "الأربعاء",
+            4: "الخميس",
+            5: "الجمعة",
+            6: "السبت"
+        };
+
         async function loadData() {
             try {
                 const res = await fetch('/api/schedule');
@@ -282,6 +282,14 @@
                 if (email.includes("zaoui") && profName.includes("زاوي")) return professorsMap[email];
             }
             return "حاضر";
+        }
+
+        // تحويل أوقات الشكل "08:00" إلى دقائق لسهولة المقارنة
+        function timeToMinutes(timeStr) {
+            if (!timeStr) return 0;
+            const parts = timeStr.trim().split(':');
+            if (parts.length < 2) return 0;
+            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
         }
 
         function selectSpecialty(spec) {
@@ -313,13 +321,28 @@
                 `;
             });
 
-            if (filtered.length > 0) {
-                const next = filtered[0];
+            // خوارزمية ذكية لمعرفة الحصة الحالية أو القادمة بناءً على الوقت واليوم اليوم
+            const now = new Date();
+            const currentDayName = daysMap[now.getDay()];
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            let nextClass = null;
+
+            // 1. البحث أولاً عن حصة اليوم التي لم تنتهِ بعد
+            const todayClasses = filtered.filter(item => item.day.trim() === currentDayName);
+            nextClass = todayClasses.find(item => timeToMinutes(item.endTime) > currentMinutes);
+
+            // 2. إذا لم تكن هناك حصص متبقية اليوم، جلب أول حصة قادمة في الأيام التالية
+            if (!nextClass && filtered.length > 0) {
+                nextClass = filtered[0]; // العودة لأول حصة مدرجة في الجدول
+            }
+
+            if (nextClass) {
                 document.getElementById('nextClassContainer').classList.remove('d-none');
-                document.getElementById('nextSubject').innerText = next.subject + " (" + next.group + ")";
-                document.getElementById('nextDetails').innerText = `الأستاذ: ${next.prof} | التوقيت: ${next.startTime} - ${next.endTime} | المكان: ${next.room}`;
+                document.getElementById('nextSubject').innerText = `${nextClass.subject} (${nextClass.group})`;
+                document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day} | الأستاذ: ${nextClass.prof} | التوقيت: ${nextClass.startTime} - ${nextClass.endTime} | المكان: ${nextClass.room}`;
                 document.getElementById('nextMapBtn').innerHTML = `
-                    <a href="${next.mapUrl}" target="_blank" class="btn btn-danger">
+                    <a href="${nextClass.mapUrl}" target="_blank" class="btn btn-danger">
                         <i class="fa-solid fa-map-location-dot me-2"></i>فتح في Maps
                     </a>
                 `;
