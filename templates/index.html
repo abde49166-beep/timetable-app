@@ -74,6 +74,7 @@
             background-color: var(--table-row-bg) !important;
             color: var(--text-primary) !important;
             border-color: var(--border-color) !important;
+            vertical-align: middle;
         }
 
         .table tbody tr:hover td {
@@ -189,7 +190,7 @@
                 <div class="card card-custom p-4">
                     <h4 id="selectedTitle" class="text-center mb-4 text-primary"></h4>
                     <div class="table-responsive">
-                        <table class="table align-middle text-center">
+                        <table class="table align-middle text-center border">
                             <thead>
                                 <tr>
                                     <th>الفوج</th>
@@ -202,7 +203,7 @@
                                 </tr>
                             </thead>
                             <tbody id="scheduleBody">
-                                <!-- البيانات تُملأ ديناميكياً -->
+                                <!-- البيانات تُملأ ديناميكياً مع دمج الخلايا المتكررة -->
                             </tbody>
                         </table>
                     </div>
@@ -276,7 +277,6 @@
             return "حاضر";
         }
 
-        // تحويل وقت مثل "09:30" إلى عدد الدقائق من بداية اليوم
         function timeToMinutes(timeStr) {
             if (!timeStr) return 0;
             const clean = timeStr.trim().replace(';', ':');
@@ -293,14 +293,36 @@
             const tbody = document.getElementById('scheduleBody');
             tbody.innerHTML = '';
 
-            filtered.forEach(item => {
-                const status = getProfStatus(item.prof);
-                const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
-                
-                tbody.innerHTML += `
-                    <tr>
-                        <td><span class="badge bg-secondary">${item.group}</span></td>
-                        <td>${item.day}</td>
+            // حساب عدد التكرارات المتتالية لخانة الفوج واليوم لدمجهما بـ rowspan
+            let i = 0;
+            while (i < filtered.length) {
+                const currentItem = filtered[i];
+                let daySpan = 1;
+
+                // حساب كم سطر متتالي يحتوي على نفس اليوم والأوج
+                while (
+                    i + daySpan < filtered.length &&
+                    filtered[i + daySpan].day.trim() === currentItem.day.trim() &&
+                    filtered[i + daySpan].group.trim() === currentItem.group.trim()
+                ) {
+                    daySpan++;
+                }
+
+                // رسم الأسطر مع دمج خلية اليوم والأوج للسطر الأول من المجموعة
+                for (let j = 0; j < daySpan; j++) {
+                    const item = filtered[i + j];
+                    const status = getProfStatus(item.prof);
+                    const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
+
+                    let rowHTML = '<tr>';
+
+                    // إضافة خلية الفوج واليوم مدمجة فقط في أول سطر من المجموعة
+                    if (j === 0) {
+                        rowHTML += `<td rowspan="${daySpan}"><span class="badge bg-secondary">${item.group}</span></td>`;
+                        rowHTML += `<td rowspan="${daySpan}" class="fw-bold">${item.day}</td>`;
+                    }
+
+                    rowHTML += `
                         <td class="fw-bold">${item.subject}</td>
                         <td>${item.prof}</td>
                         <td>${item.startTime} - ${item.endTime}</td>
@@ -310,27 +332,28 @@
                             </a>
                         </td>
                         <td><span class="badge ${badgeClass}">${status}</span></td>
-                    </tr>
-                `;
-            });
+                    </tr>`;
 
-            // خوارزمية البحث التفاعلي بناءً على اليوم والوقت الحاليين
+                    tbody.innerHTML += rowHTML;
+                }
+
+                i += daySpan;
+            }
+
+            // تحديد الحصة التفاعلية القادمة
             const now = new Date();
-            const currentDayIndex = now.getDay(); // 0: Sunday ... 4: Thursday, 5: Friday, 6: Saturday
+            const currentDayIndex = now.getDay();
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
             let nextClass = null;
 
-            // 1. البحث في اليوم الحالي أولاً عن أول حصة لم ينتهِ وقت نهايتها بعد
             const todayName = weekDaysOrder[currentDayIndex];
             const todayClasses = filtered.filter(item => item.day && item.day.trim().includes(todayName));
-            
             nextClass = todayClasses.find(item => timeToMinutes(item.endTime) > currentMinutes);
 
-            // 2. إذا انتهت كل حصص اليوم الحالي (أو كنا في يوم الجمعة/السبت)، ابحث عن أول حصة في الأيام القادمة بالترتيب
             if (!nextClass) {
-                for (let i = 1; i <= 6; i++) {
-                    const checkDayIndex = (currentDayIndex + i) % 7;
+                for (let k = 1; k <= 6; k++) {
+                    const checkDayIndex = (currentDayIndex + k) % 7;
                     const checkDayName = weekDaysOrder[checkDayIndex];
                     const futureClasses = filtered.filter(item => item.day && item.day.trim().includes(checkDayName));
                     if (futureClasses.length > 0) {
@@ -340,7 +363,6 @@
                 }
             }
 
-            // 3. كخيار أخير إذا لم يجد أي تطابق، أظهر أول حصة بالجدول
             if (!nextClass && filtered.length > 0) {
                 nextClass = filtered[0];
             }
