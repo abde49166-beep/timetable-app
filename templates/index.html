@@ -250,15 +250,7 @@
         let fullSchedule = [];
         let professorsMap = {};
 
-        const daysMap = {
-            0: "الأحد",
-            1: "الإثنين",
-            2: "الثلاثاء",
-            3: "الأربعاء",
-            4: "الخميس",
-            5: "الجمعة",
-            6: "السبت"
-        };
+        const weekDaysOrder = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
         async function loadData() {
             try {
@@ -284,10 +276,10 @@
             return "حاضر";
         }
 
-        // تحويل أوقات الشكل "08:00" إلى دقائق لسهولة المقارنة
         function timeToMinutes(timeStr) {
             if (!timeStr) return 0;
-            const parts = timeStr.trim().split(':');
+            const clean = timeStr.trim().replace(';', ':');
+            const parts = clean.split(':');
             if (parts.length < 2) return 0;
             return parseInt(parts[0]) * 60 + parseInt(parts[1]);
         }
@@ -321,20 +313,34 @@
                 `;
             });
 
-            // خوارزمية ذكية لمعرفة الحصة الحالية أو القادمة بناءً على الوقت واليوم اليوم
+            // حساب الحصة الحالية أو القادمة بدقة عالية
             const now = new Date();
-            const currentDayName = daysMap[now.getDay()];
+            const currentDayIndex = now.getDay(); // 0: Sunday, 1: Monday, ... 4: Thursday
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
             let nextClass = null;
 
-            // 1. البحث أولاً عن حصة اليوم التي لم تنتهِ بعد
-            const todayClasses = filtered.filter(item => item.day.trim() === currentDayName);
+            // 1. البحث في اليوم الحالي أولاً عن حصة لم تنتهِ
+            const todayName = weekDaysOrder[currentDayIndex];
+            const todayClasses = filtered.filter(item => item.day.trim().includes(todayName));
             nextClass = todayClasses.find(item => timeToMinutes(item.endTime) > currentMinutes);
 
-            // 2. إذا لم تكن هناك حصص متبقية اليوم، جلب أول حصة قادمة في الأيام التالية
+            // 2. إذا لم تكن هناك حصص متبقية اليوم، تبحث الخوارزمية في الأيام القادمة بالترتيب
+            if (!nextClass) {
+                for (let i = 1; i <= 6; i++) {
+                    const checkDayIndex = (currentDayIndex + i) % 7;
+                    const checkDayName = weekDaysOrder[checkDayIndex];
+                    const futureClasses = filtered.filter(item => item.day.trim().includes(checkDayName));
+                    if (futureClasses.length > 0) {
+                        nextClass = futureClasses[0];
+                        break;
+                    }
+                }
+            }
+
+            // 3. كحل احتياطي
             if (!nextClass && filtered.length > 0) {
-                nextClass = filtered[0]; // العودة لأول حصة مدرجة في الجدول
+                nextClass = filtered[0];
             }
 
             if (nextClass) {
