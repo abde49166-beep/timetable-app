@@ -173,7 +173,7 @@
                 <div class="card card-custom p-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <span id="nextBadge" class="badge bg-primary mb-2">الحصة القادمة/الحالية</span>
+                            <span class="badge bg-primary mb-2">الحصة القادمة/الحالية</span>
                             <h4 id="nextSubject" class="mb-1">--</h4>
                             <p id="nextDetails" class="text-secondary mb-0">--</p>
                         </div>
@@ -250,7 +250,7 @@
         let fullSchedule = [];
         let professorsMap = {};
 
-        const weekDaysOrder = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+        const daysList = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
 
         async function loadData() {
             try {
@@ -276,19 +276,11 @@
             return "حاضر";
         }
 
-        function timeToMinutes(timeStr) {
-            if (!timeStr) return 0;
-            const clean = timeStr.trim().replace(';', ':');
-            const parts = clean.split(':');
-            if (parts.length < 2) return 0;
-            return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-        }
-
         function selectSpecialty(spec) {
             document.getElementById('selectedTitle').innerText = "جدول توقيت تخصص: " + spec;
             document.getElementById('scheduleContainer').classList.remove('d-none');
             
-            const filtered = fullSchedule.filter(item => item.specialty.includes(spec));
+            const filtered = fullSchedule.filter(item => item.specialty && item.specialty.includes(spec));
             const tbody = document.getElementById('scheduleBody');
             tbody.innerHTML = '';
 
@@ -302,7 +294,7 @@
                         <td>${item.day}</td>
                         <td class="fw-bold">${item.subject}</td>
                         <td>${item.prof}</td>
-                        <td>${item.startTime} - ${item.endTime}</td>
+                        <td>${item.startTime} -${item.endTime}</td>
                         <td>
                             <a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
                                 <i class="fa-solid fa-location-dot me-1"></i>${item.room}
@@ -313,32 +305,17 @@
                 `;
             });
 
-            // حساب الحصة الحالية أو القادمة بدقة عالية
+            // معرفة الحصة القادمة بدقة وبدون أخطاء
             const now = new Date();
-            const currentDayIndex = now.getDay(); // 0: Sunday, 1: Monday, ... 4: Thursday
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-            let nextClass = null;
-
-            // 1. البحث في اليوم الحالي أولاً عن حصة لم تنتهِ
-            const todayName = weekDaysOrder[currentDayIndex];
-            const todayClasses = filtered.filter(item => item.day.trim().includes(todayName));
-            nextClass = todayClasses.find(item => timeToMinutes(item.endTime) > currentMinutes);
-
-            // 2. إذا لم تكن هناك حصص متبقية اليوم، تبحث الخوارزمية في الأيام القادمة بالترتيب
-            if (!nextClass) {
-                for (let i = 1; i <= 6; i++) {
-                    const checkDayIndex = (currentDayIndex + i) % 7;
-                    const checkDayName = weekDaysOrder[checkDayIndex];
-                    const futureClasses = filtered.filter(item => item.day.trim().includes(checkDayName));
-                    if (futureClasses.length > 0) {
-                        nextClass = futureClasses[0];
-                        break;
-                    }
-                }
+            const currentDayNumber = now.getDay(); // 0 = Sunday, 1 = Monday ... 4 = Thursday
+            
+            let targetDay = "الأحد";
+            if (currentDayNumber >= 0 && currentDayNumber <= 4) {
+                targetDay = daysList[currentDayNumber];
             }
 
-            // 3. كحل احتياطي
+            // البحث عن أول حصة تطابق اليوم الحالي أو أول حصة متوفرة في القائمة
+            let nextClass = filtered.find(item => item.day && item.day.trim().includes(targetDay));
             if (!nextClass && filtered.length > 0) {
                 nextClass = filtered[0];
             }
@@ -346,72 +323,8 @@
             if (nextClass) {
                 document.getElementById('nextClassContainer').classList.remove('d-none');
                 document.getElementById('nextSubject').innerText = `${nextClass.subject} (${nextClass.group})`;
-                document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day} | الأستاذ: ${nextClass.prof} | التوقيت: ${nextClass.startTime} - ${nextClass.endTime} | المكان: ${nextClass.room}`;
+                document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day} | الأستاذ: ${nextClass.prof} \vert{} التوقيت: ${nextClass.startTime} - ${nextClass.endTime} \vert{} المكان: ${nextClass.room}`;
                 document.getElementById('nextMapBtn').innerHTML = `
                     <a href="${nextClass.mapUrl}" target="_blank" class="btn btn-danger">
-                        <i class="fa-solid fa-map-location-dot me-2"></i>فتح في Maps
-                    </a>
-                `;
-            }
-        }
-
-        document.getElementById('profForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('profEmail').value;
-            const password = document.getElementById('profPassword').value;
-            const status = document.getElementById('profStatus').value;
-            const alertDiv = document.getElementById('profAlert');
-
-            alertDiv.innerHTML = '<div class="alert alert-info">جاري التحديث...</div>';
-
-            try {
-                const res = await fetch('/api/update-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, status })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    alertDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-                    await loadData();
-                } else {
-                    alertDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-                }
-            } catch (err) {
-                alertDiv.innerHTML = '<div class="alert alert-danger">حدث خطأ أثناء الاتصال بالسيرفر</div>';
-            }
-        });
-
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            updateThemeUI(newTheme);
-        }
-
-        function updateThemeUI(theme) {
-            const icon = document.getElementById('themeIcon');
-            const text = document.getElementById('themeText');
-            
-            if (theme === 'dark') {
-                icon.className = 'fa-solid fa-sun me-1';
-                text.innerText = 'الوضع المضيء';
-            } else {
-                icon.className = 'fa-solid fa-moon me-1';
-                text.innerText = 'الوضع الداكن';
-            }
-        }
-
-        window.onload = () => {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeUI(savedTheme);
-            loadData();
-        };
-    </script>
-</body>
-</html>
+                        <i class="fa-solid fa
+                        
