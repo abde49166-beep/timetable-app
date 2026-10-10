@@ -301,6 +301,7 @@
             
             currentSpecialtyData = fullSchedule.filter(item => item && item.specialty && item.specialty.includes(spec));
 
+            // استخراج قائمة الأفواج المتاحة تلقائياً بدون تكرار
             const groups = [...new Set(currentSpecialtyData.map(item => item.group ? item.group.trim() : ''))].filter(g => g !== '');
             const groupSelect = document.getElementById('groupSelect');
             groupSelect.innerHTML = '<option value="ALL">جميع الأفواج (عرض شامل)</option>';
@@ -318,6 +319,8 @@
             const tbody = document.getElementById('scheduleBody');
             tbody.innerHTML = '';
 
+            // منطق الفلترة المباشر والمضمون:
+            // عرض المحاضرات والـ TD للجميع + حصص TP الخاصة بالفوج المختار حصراً
             let filtered = currentSpecialtyData;
             if (selectedGroup !== 'ALL') {
                 filtered = currentSpecialtyData.filter(item => {
@@ -326,35 +329,21 @@
 
                     const isTP = subjectStr.includes('TP');
                     if (!isTP) {
-                        return true;
+                        return true; // إظهار باقي المواد مثل (Lecture و TD)
                     }
-                    return groupStr === selectedGroup;
+                    return groupStr === selectedGroup; // إظهار TP المخصص للفوج فقط
                 });
             }
 
-            // إخفاء النص المكرر بصرياً لنفس الفوج واليوم المتتاليين
-            let lastGroup = "";
-            let lastDay = "";
-
+            // رسم الأسطر بأمان تام 100% ودون حلقة مفرغة
             filtered.forEach((item) => {
                 const status = getProfStatus(item.prof);
                 const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
 
-                const currentGroup = item.group ? item.group.trim() : '';
-                const currentDay = item.day ? item.day.trim() : '';
-
-                // إذا كان الفوج واليوم يطابقان السطر السابق تماماً، نترك الخلية فارغة بصرياً
-                const showGroup = (currentGroup !== lastGroup || currentDay !== lastDay) 
-                    ? `<span class="badge bg-secondary">${currentGroup}</span>` 
-                    : '';
-                const showDay = (currentGroup !== lastGroup || currentDay !== lastDay) 
-                    ? `<span class="fw-bold">${currentDay}</span>` 
-                    : '';
-
                 tbody.innerHTML += `
                     <tr>
-                        <td>${showGroup}</td>
-                        <td>${showDay}</td>
+                        <td><span class="badge bg-secondary">${item.group || ''}</span></td>
+                        <td class="fw-bold">${item.day || ''}</td>
                         <td class="fw-bold">${item.subject || ''}</td>
                         <td>${item.prof || ''}</td>
                         <td>${item.startTime || ''} - ${item.endTime || ''}</td>
@@ -366,12 +355,9 @@
                         <td><span class="badge ${badgeClass}">${status}</span></td>
                     </tr>
                 `;
-
-                lastGroup = currentGroup;
-                lastDay = currentDay;
             });
 
-            // حساب الحصة القادمة
+            // حساب الحصة القادمة المخصصة بدقة حسب الساعة واليوم
             const now = new Date();
             const currentDayIndex = now.getDay();
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -458,4 +444,17 @@
                 icon.className = 'fa-solid fa-sun me-1';
                 text.innerText = 'الوضع المضيء';
             } else {
-              
+                icon.className = 'fa-solid fa-moon me-1';
+                text.innerText = 'الوضع الداكن';
+            }
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+            loadData();
+        };
+    </script>
+</body>
+</html>
