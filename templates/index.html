@@ -267,9 +267,9 @@
             try {
                 const res = await fetch('/api/schedule');
                 const data = await res.json();
-                if (data.success) {
-                    fullSchedule = data.schedule;
-                    professorsMap = data.professors;
+                if (data && data.success) {
+                    fullSchedule = data.schedule || [];
+                    professorsMap = data.professors || {};
                 }
             } catch (err) {
                 console.error("خطأ في جلب البيانات:", err);
@@ -277,6 +277,7 @@
         }
 
         function getProfStatus(profName) {
+            if (!profName) return "حاضر";
             for (let email in professorsMap) {
                 if (email.includes("hamani") && profName.includes("حماني")) return professorsMap[email];
                 if (email.includes("aittahar") && profName.includes("أيت طاهر")) return professorsMap[email];
@@ -289,124 +290,165 @@
 
         function timeToMinutes(timeStr) {
             if (!timeStr) return 0;
-            const clean = timeStr.trim().replace(';', ':');
+            const clean = timeStr.toString().trim().replace(';', ':');
             const parts = clean.split(':');
             if (parts.length < 2) return 0;
             return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
         }
 
         function selectSpecialty(spec) {
-            currentSpecialtyName = spec;
-            document.getElementById('selectedTitle').innerText = "جدول توقيت تخصص: " + spec;
-            document.getElementById('scheduleContainer').classList.remove('d-none');
-            
-            currentSpecialtyData = fullSchedule.filter(item => item.specialty && item.specialty.includes(spec));
+            try {
+                currentSpecialtyName = spec;
+                document.getElementById('selectedTitle').innerText = "جدول توقيت تخصص: " + spec;
+                document.getElementById('scheduleContainer').classList.remove('d-none');
+                
+                currentSpecialtyData = fullSchedule.filter(item => item && item.specialty && item.specialty.includes(spec));
 
-            // استخراج قائمة الأفواج المتاحة تلقائياً
-            const groups = [...new Set(currentSpecialtyData.map(item => item.group.trim()))];
-            const groupSelect = document.getElementById('groupSelect');
-            groupSelect.innerHTML = '<option value="ALL">جميع الأفواج (العرض الكامل)</option>';
-            
-            groups.forEach(g => {
-                if (g) groupSelect.innerHTML += `<option value="${g}">${g}</option>`;
-            });
+                // استخراج قائمة الأفواج المتاحة
+                const groups = [...new Set(currentSpecialtyData.map(item => item.group ? item.group.trim() : ''))].filter(Boolean);
+                const groupSelect = document.getElementById('groupSelect');
+                groupSelect.innerHTML = '<option value="ALL">جميع الأفواج (العرض الكامل)</option>';
+                
+                groups.forEach(g => {
+                    groupSelect.innerHTML += `<option value="${g}">${g}</option>`;
+                });
 
-            document.getElementById('groupFilterContainer').classList.remove('d-none');
-            renderScheduleAndNextClass();
+                document.getElementById('groupFilterContainer').classList.remove('d-none');
+                renderScheduleAndNextClass();
+            } catch (e) {
+                console.error("خطأ في تحديد التخصص:", e);
+            }
         }
 
         function renderScheduleAndNextClass() {
-            const selectedGroup = document.getElementById('groupSelect').value;
-            const tbody = document.getElementById('scheduleBody');
-            tbody.innerHTML = '';
+            try {
+                const selectedGroup = document.getElementById('groupSelect').value;
+                const tbody = document.getElementById('scheduleBody');
+                tbody.innerHTML = '';
 
-            // ذكاء التصفية الجديد:
-            // إذا كان الفوج محدد: يتم عرض جميع حصص Lecture و TD لكافة الأفواج + حصص TP الخاصة بهذا الفوج فقط!
-            let filtered = currentSpecialtyData;
-            if (selectedGroup !== 'ALL') {
-                filtered = currentSpecialtyData.filter(item => {
-                    const groupStr = item.group ? item.group.trim() : '';
-                    const subjectStr = item.subject ? item.subject.toUpperCase() : '';
+                // منطق التصفية:
+                // عرض حصص Lecture و TD للجميع + حصص TP الخاصة بالفوج المحدد فقط
+                let filtered = currentSpecialtyData;
+                if (selectedGroup !== 'ALL') {
+                    filtered = currentSpecialtyData.filter(item => {
+                        const groupStr = item.group ? item.group.trim() : '';
+                        const subjectStr = item.subject ? item.subject.toUpperCase() : '';
 
-                    const isTP = subjectStr.includes('TP');
-                    
-                    // إذا كانت الحصة ليست TP (أي أنها Lecture أو TD)، أظهرها للجميع
-                    if (!isTP) {
-                        return true;
+                        const isTP = subjectStr.includes('TP');
+                        
+                        if (!isTP) {
+                            return true; // إظهار المحاضرات النظرية و TD
+                        }
+                        return groupStr === selectedGroup; // إظهار TP المخصص للفوج فقط
+                    });
+                }
+
+                // 1. رسم الجدول مع دمج الخلايا
+                let i = 0;
+                while (i < filtered.length) {
+                    const currentItem = filtered[i];
+                    let daySpan = 1;
+
+                    while (
+                        i + daySpan < filtered.length &&
+                        filtered[i + daySpan].day && currentItem.day &&
+                        filtered[i + daySpan].day.trim() === currentItem.day.trim() &&
+                        filtered[i + daySpan].group && currentItem.group &&
+                        filtered[i + daySpan].group.trim() === currentItem.group.trim()
+                    ) {
+                        daySpan++;
                     }
-                    
-                    // إذا كانت TP، لا تظهر إلا إذا تطابق الفوج المحدد
-                    return groupStr === selectedGroup;
+
+                    for (let j = 0; j < daySpan; j++) {
+                        const item = filtered[i + j];
+                        const status = getProfStatus(item.prof);
+                        const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
+
+                        let rowHTML = '<tr>';
+
+                        if (j === 0) {
+                            rowHTML += `<td rowspan="${daySpan}"><span class="badge bg-secondary">${item.group || ''}</span></td>`;
+                            rowHTML += `<td rowspan="${daySpan}" class="fw-bold">${item.day || ''}</td>`;
+                        }
+
+                        rowHTML += `
+                            <td class="fw-bold">${item.subject || ''}</td>
+                            <td>${item.prof || ''}</td>
+                            <td>${item.startTime || ''} - ${item.endTime || ''}</td>
+                            <td>
+                                <a href="${item.mapUrl || '#'}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="fa-solid fa-location-dot me-1"></i>${item.room || 'المكان'}
+                                </a>
+                            </td>
+                            <td><span class="badge ${badgeClass}">${status}</span></td>
+                        </tr>`;
+
+                        tbody.innerHTML += rowHTML;
+                    }
+
+                    i += daySpan;
+                }
+
+                // 2. تحديد الحصة القادمة
+                const now = new Date();
+                const currentDayIndex = now.getDay();
+                const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+                let nextClass = null;
+                const todayName = weekDaysOrder[currentDayIndex];
+                
+                const todayClasses = filtered.filter(item => item.day && item.day.trim().includes(todayName));
+                nextClass = todayClasses.find(item => timeToMinutes(item.endTime) > currentMinutes);
+
+                if (!nextClass) {
+                    for (let k = 1; k <= 6; k++) {
+                        const checkDayIndex = (currentDayIndex + k) % 7;
+                        const checkDayName = weekDaysOrder[checkDayIndex];
+                        const futureClasses = filtered.filter(item => item.day && item.day.trim().includes(checkDayName));
+                        if (futureClasses.length > 0) {
+                            nextClass = futureClasses[0];
+                            break;
+                        }
+                    }
+                }
+
+                if (!nextClass && filtered.length > 0) {
+                    nextClass = filtered[0];
+                }
+
+                if (nextClass) {
+                    document.getElementById('nextClassContainer').classList.remove('d-none');
+                    document.getElementById('nextSubject').innerText = `${nextClass.subject || ''} (${nextClass.group || ''})`;
+                    document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day || ''} | الأستاذ: ${nextClass.prof || ''} | التوقيت: ${nextClass.startTime || ''} - ${nextClass.endTime || ''} | المكان: ${nextClass.room || ''}`;
+                    document.getElementById('nextMapBtn').innerHTML = `
+                        <a href="${nextClass.mapUrl || '#'}" target="_blank" class="btn btn-danger">
+                            <i class="fa-solid fa-map-location-dot me-2"></i>فتح في Maps
+                        </a>
+                    `;
+                } else {
+                    document.getElementById('nextClassContainer').classList.add('d-none');
+                }
+            } catch (err) {
+                console.error("خطأ أثناء بناء الجدول:", err);
+            }
+        }
+
+        document.getElementById('profForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('profEmail').value;
+            const password = document.getElementById('profPassword').value;
+            const status = document.getElementById('profStatus').value;
+            const alertDiv = document.getElementById('profAlert');
+
+            alertDiv.innerHTML = '<div class="alert alert-info">جاري التحديث...</div>';
+
+            try {
+                const res = await fetch('/api/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, status })
                 });
-            }
-
-            // 1. رسم الجدول مع دمج الخلايا المتكررة
-            let i = 0;
-            while (i < filtered.length) {
-                const currentItem = filtered[i];
-                let daySpan = 1;
-
-                while (
-                    i + daySpan < filtered.length &&
-                    filtered[i + daySpan].day.trim() === currentItem.day.trim() &&
-                    filtered[i + daySpan].group.trim() === currentItem.group.trim()
-                ) {
-                    daySpan++;
-                }
-
-                for (let j = 0; j < daySpan; j++) {
-                    const item = filtered[i + j];
-                    const status = getProfStatus(item.prof);
-                    const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
-
-                    let rowHTML = '<tr>';
-
-                    if (j === 0) {
-                        rowHTML += `<td rowspan="${daySpan}"><span class="badge bg-secondary">${item.group}</span></td>`;
-                        rowHTML += `<td rowspan="${daySpan}" class="fw-bold">${item.day}</td>`;
-                    }
-
-                    rowHTML += `
-                        <td class="fw-bold">${item.subject}</td>
-                        <td>${item.prof}</td>
-                        <td>${item.startTime} - ${item.endTime}</td>
-                        <td>
-                            <a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
-                                <i class="fa-solid fa-location-dot me-1"></i>${item.room}
-                            </a>
-                        </td>
-                        <td><span class="badge ${badgeClass}">${status}</span></td>
-                    </tr>`;
-
-                    tbody.innerHTML += rowHTML;
-                }
-
-                i += daySpan;
-            }
-
-            // 2. حساب الحصة القادمة بدقة (النظرية، TD، و TP الخاصة بالفوج)
-            const now = new Date();
-            const currentDayIndex = now.getDay();
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-            let nextClass = null;
-            const todayName = weekDaysOrder[currentDayIndex];
-            
-            const todayClasses = filtered.filter(item => item.day && item.day.trim().includes(todayName));
-            nextClass = todayClasses.find(item => timeToMinutes(item.endTime) > currentMinutes);
-
-            if (!nextClass) {
-                for (let k = 1; k <= 6; k++) {
-                    const checkDayIndex = (currentDayIndex + k) % 7;
-                    const checkDayName = weekDaysOrder[checkDayIndex];
-                    const futureClasses = filtered.filter(item => item.day && item.day.trim().includes(checkDayName));
-                    if (futureClasses.length > 0) {
-                        nextClass = futureClasses[0];
-                        break;
-                    }
-                }
-            }
-
-            if (!nextClass && filtered.length > 0) {
-                nextClass
-        
+                const data = await res.json();
+                
+                if (data && data.success) {
+                    alertDiv.innerHTML = `<div class="alert 
