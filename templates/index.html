@@ -153,7 +153,7 @@
             <div class="col-md-10 text-center">
                 <div class="card card-custom p-4">
                     <h5 class="mb-3">اختر نوع الاستخدام للبدء:</h5>
-                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <div class="d-flex justify-content-center gap-3 flex-wrap mb-3">
                         <button onclick="selectSpecialty('تسيير المنشآت الرياضية')" class="btn btn-primary btn-specialty">
                             <i class="fa-solid fa-building-columns me-2"></i>تسيير المنشآت الرياضية
                         </button>
@@ -164,6 +164,14 @@
                             <i class="fa-solid fa-user-tie me-2"></i>فضاء الأساتذة
                         </button>
                     </div>
+
+                    <!-- اختيار الفوج لتحديد TP بشكل دقيق -->
+                    <div id="groupFilterContainer" class="d-none col-md-6 mx-auto mt-3">
+                        <label class="form-label fw-bold"><i class="fa-solid fa-users me-1"></i>اختر الفوج الخاص بك لرؤية برنامجك وحصتك القادمة:</label>
+                        <select id="groupSelect" class="form-select text-center fw-bold" onchange="renderScheduleAndNextClass()">
+                            <option value="ALL">جميع الأفواج (عرض شامل)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -171,11 +179,11 @@
         <!-- ملخص الحصة القادمة / الحالية -->
         <div id="nextClassContainer" class="row justify-content-center mb-4 d-none">
             <div class="col-md-10">
-                <div class="card card-custom p-3">
+                <div class="card card-custom p-3 border-start border-4 border-primary">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <span id="classStatusBadge" class="badge bg-primary mb-2">الحصة القادمة/الحالية</span>
-                            <h4 id="nextSubject" class="mb-1">--</h4>
+                            <h4 id="nextSubject" class="mb-1 text-primary">--</h4>
                             <p id="nextDetails" class="text-secondary mb-0">--</p>
                         </div>
                         <div id="nextMapBtn"></div>
@@ -250,6 +258,7 @@
     <script>
         let fullSchedule = [];
         let professorsMap = {};
+        let currentSpecialtyData = [];
 
         const weekDaysOrder = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
@@ -267,6 +276,7 @@
         }
 
         function getProfStatus(profName) {
+            if (!profName) return "حاضر";
             for (let email in professorsMap) {
                 if (email.includes("hamani") && profName.includes("حماني")) return professorsMap[email];
                 if (email.includes("aittahar") && profName.includes("أيت طاهر")) return professorsMap[email];
@@ -279,7 +289,7 @@
 
         function timeToMinutes(timeStr) {
             if (!timeStr) return 0;
-            const clean = timeStr.trim().replace(';', ':');
+            const clean = timeStr.toString().trim().replace(';', ':');
             const parts = clean.split(':');
             if (parts.length < 2) return 0;
             return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
@@ -289,26 +299,58 @@
             document.getElementById('selectedTitle').innerText = "جدول توقيت تخصص: " + spec;
             document.getElementById('scheduleContainer').classList.remove('d-none');
             
-            const filtered = fullSchedule.filter(item => item.specialty && item.specialty.includes(spec));
+            currentSpecialtyData = fullSchedule.filter(item => item.specialty && item.specialty.includes(spec));
+
+            // استخراج أرقام الأفواج المتاحة تلقائياً بمرونة
+            const groups = [...new Set(currentSpecialtyData.map(item => item.group ? item.group.trim() : ''))].filter(g => g !== '');
+            const groupSelect = document.getElementById('groupSelect');
+            groupSelect.innerHTML = '<option value="ALL">جميع الأفواج (عرض شامل)</option>';
+            
+            groups.forEach(g => {
+                groupSelect.innerHTML += `<option value="${g}">${g}</option>`;
+            });
+
+            document.getElementById('groupFilterContainer').classList.remove('d-none');
+            renderScheduleAndNextClass();
+        }
+
+        function renderScheduleAndNextClass() {
+            const selectedGroup = document.getElementById('groupSelect').value;
             const tbody = document.getElementById('scheduleBody');
             tbody.innerHTML = '';
 
-            // حساب عدد التكرارات المتتالية لخانة الفوج واليوم لدمجهما بـ rowspan
+            // الفرز الذكي:
+            // عرض حصص Lecture و TD لجميع الأفواج، وتخصيص حصص TP فقط للفوج المحدد
+            let filtered = currentSpecialtyData;
+            if (selectedGroup !== 'ALL') {
+                filtered = currentSpecialtyData.filter(item => {
+                    const groupStr = item.group ? item.group.trim() : '';
+                    const subjectStr = item.subject ? item.subject.toUpperCase() : '';
+
+                    const isTP = subjectStr.includes('TP');
+                    if (!isTP) {
+                        return true; // إظهار حصص Lecture و TD للجميع
+                    }
+                    return groupStr === selectedGroup; // إظهار TP المخصص للفوج فقط
+                });
+            }
+
+            // 1. رسم الجدول مع دمج الخلايا المتكررة
             let i = 0;
             while (i < filtered.length) {
                 const currentItem = filtered[i];
                 let daySpan = 1;
 
-                // حساب كم سطر متتالي يحتوي على نفس اليوم والأوج
                 while (
                     i + daySpan < filtered.length &&
+                    filtered[i + daySpan].day && currentItem.day &&
                     filtered[i + daySpan].day.trim() === currentItem.day.trim() &&
+                    filtered[i + daySpan].group && currentItem.group &&
                     filtered[i + daySpan].group.trim() === currentItem.group.trim()
                 ) {
                     daySpan++;
                 }
 
-                // رسم الأسطر مع دمج خلية اليوم والأوج للسطر الأول من المجموعة
                 for (let j = 0; j < daySpan; j++) {
                     const item = filtered[i + j];
                     const status = getProfStatus(item.prof);
@@ -316,19 +358,18 @@
 
                     let rowHTML = '<tr>';
 
-                    // إضافة خلية الفوج واليوم مدمجة فقط في أول سطر من المجموعة
                     if (j === 0) {
-                        rowHTML += `<td rowspan="${daySpan}"><span class="badge bg-secondary">${item.group}</span></td>`;
-                        rowHTML += `<td rowspan="${daySpan}" class="fw-bold">${item.day}</td>`;
+                        rowHTML += `<td rowspan="${daySpan}"><span class="badge bg-secondary">${item.group || ''}</span></td>`;
+                        rowHTML += `<td rowspan="${daySpan}" class="fw-bold">${item.day || ''}</td>`;
                     }
 
                     rowHTML += `
-                        <td class="fw-bold">${item.subject}</td>
-                        <td>${item.prof}</td>
-                        <td>${item.startTime} - ${item.endTime}</td>
+                        <td class="fw-bold">${item.subject || ''}</td>
+                        <td>${item.prof || ''}</td>
+                        <td>${item.startTime || ''} - ${item.endTime || ''}</td>
                         <td>
-                            <a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-outline-danger">
-                                <i class="fa-solid fa-location-dot me-1"></i>${item.room}
+                            <a href="${item.mapUrl || '#'}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                <i class="fa-solid fa-location-dot me-1"></i>${item.room || 'المكان'}
                             </a>
                         </td>
                         <td><span class="badge ${badgeClass}">${status}</span></td>
@@ -340,14 +381,14 @@
                 i += daySpan;
             }
 
-            // تحديد الحصة التفاعلية القادمة
+            // 2. حساب الحصة القادمة بدقة حسب الفوج والساعة الحالية
             const now = new Date();
             const currentDayIndex = now.getDay();
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
             let nextClass = null;
-
             const todayName = weekDaysOrder[currentDayIndex];
+            
             const todayClasses = filtered.filter(item => item.day && item.day.trim().includes(todayName));
             nextClass = todayClasses.find(item => timeToMinutes(item.endTime) > currentMinutes);
 
@@ -369,10 +410,10 @@
 
             if (nextClass) {
                 document.getElementById('nextClassContainer').classList.remove('d-none');
-                document.getElementById('nextSubject').innerText = `${nextClass.subject} (${nextClass.group})`;
-                document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day} | الأستاذ: ${nextClass.prof} | التوقيت: ${nextClass.startTime} - ${nextClass.endTime} | المكان: ${nextClass.room}`;
+                document.getElementById('nextSubject').innerText = `${nextClass.subject || ''} (${nextClass.group || ''})`;
+                document.getElementById('nextDetails').innerText = `اليوم: ${nextClass.day || ''} | الأستاذ: ${nextClass.prof || ''} | التوقيت: ${nextClass.startTime || ''} - ${nextClass.endTime || ''} | المكان: ${nextClass.room || ''}`;
                 document.getElementById('nextMapBtn').innerHTML = `
-                    <a href="${nextClass.mapUrl}" target="_blank" class="btn btn-danger">
+                    <a href="${nextClass.mapUrl || '#'}" target="_blank" class="btn btn-danger">
                         <i class="fa-solid fa-map-location-dot me-2"></i>فتح في Maps
                     </a>
                 `;
@@ -414,30 +455,4 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
             document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            updateThemeUI(newTheme);
-        }
-
-        function updateThemeUI(theme) {
-            const icon = document.getElementById('themeIcon');
-            const text = document.getElementById('themeText');
-            
-            if (theme === 'dark') {
-                icon.className = 'fa-solid fa-sun me-1';
-                text.innerText = 'الوضع المضيء';
-            } else {
-                icon.className = 'fa-solid fa-moon me-1';
-                text.innerText = 'الوضع الداكن';
-            }
-        }
-
-        window.onload = () => {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeUI(savedTheme);
-            loadData();
-        };
-    </script>
-</body>
-</html>
+            localStorage.setItem('theme', newThe
