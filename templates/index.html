@@ -301,7 +301,6 @@
             
             currentSpecialtyData = fullSchedule.filter(item => item && item.specialty && item.specialty.includes(spec));
 
-            // استخراج أرقام الأفواج المتاحة تلقائياً
             const groups = [...new Set(currentSpecialtyData.map(item => item.group ? item.group.trim() : ''))].filter(g => g !== '');
             const groupSelect = document.getElementById('groupSelect');
             groupSelect.innerHTML = '<option value="ALL">جميع الأفواج (عرض شامل)</option>';
@@ -319,7 +318,6 @@
             const tbody = document.getElementById('scheduleBody');
             tbody.innerHTML = '';
 
-            // تصفية الحصص: إظهار المحاضرات النظرية والـ TD للجميع + حصص TP الخاصة بالفوج فقط
             let filtered = currentSpecialtyData;
             if (selectedGroup !== 'ALL') {
                 filtered = currentSpecialtyData.filter(item => {
@@ -328,41 +326,21 @@
 
                     const isTP = subjectStr.includes('TP');
                     if (!isTP) {
-                        return true; // حصص Lecture و TD تظهر للجميع
+                        return true;
                     }
-                    return groupStr === selectedGroup; // TP يظهر للفوج المحدد فقط
+                    return groupStr === selectedGroup;
                 });
             }
 
-            // 1. رسم الجدول مع دمج الخلايا المتكررة لليوم والفوج بدقة
-            let i = 0;
-            while (i < filtered.length) {
-                const currentItem = filtered[i];
-                let daySpan = 1;
+            // رسم أسطر الجدول مباشرة وبدون أخطاء تجميد
+            filtered.forEach(item => {
+                const status = getProfStatus(item.prof);
+                const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
 
-                while (
-                    i + daySpan < filtered.length &&
-                    filtered[i + daySpan].day && currentItem.day &&
-                    filtered[i + daySpan].day.trim() === currentItem.day.trim() &&
-                    filtered[i + daySpan].group && currentItem.group &&
-                    filtered[i + daySpan].group.trim() === currentItem.group.trim()
-                ) {
-                    daySpan++;
-                }
-
-                for (let j = 0; j < daySpan; j++) {
-                    const item = filtered[i + j];
-                    const status = getProfStatus(item.prof);
-                    const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
-
-                    let rowHTML = '<tr>';
-
-                    if (j === 0) {
-                        rowHTML += `<td rowspan="${daySpan}"><span class="badge bg-secondary">${item.group || ''}</span></td>`;
-                        rowHTML += `<td rowspan="${daySpan}" class="fw-bold">${item.day || ''}</td>`;
-                    }
-
-                    rowHTML += `
+                tbody.innerHTML += `
+                    <tr>
+                        <td><span class="badge bg-secondary">${item.group || ''}</span></td>
+                        <td class="fw-bold">${item.day || ''}</td>
                         <td class="fw-bold">${item.subject || ''}</td>
                         <td>${item.prof || ''}</td>
                         <td>${item.startTime || ''} - ${item.endTime || ''}</td>
@@ -372,15 +350,11 @@
                             </a>
                         </td>
                         <td><span class="badge ${badgeClass}">${status}</span></td>
-                    </tr>`;
+                    </tr>
+                `;
+            });
 
-                    tbody.innerHTML += rowHTML;
-                }
-
-                i += daySpan;
-            }
-
-            // 2. حساب الحصة القادمة المخصصة بدقة حسب الوقت الحالي
+            // حساب الحصة القادمة
             const now = new Date();
             const currentDayIndex = now.getDay();
             const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -454,4 +428,30 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
             document.documentElement.setAttribute('data-theme', newTheme);
-            localSt
+            localStorage.setItem('theme', newTheme);
+            
+            updateThemeUI(newTheme);
+        }
+
+        function updateThemeUI(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            
+            if (theme === 'dark') {
+                icon.className = 'fa-solid fa-sun me-1';
+                text.innerText = 'الوضع المضيء';
+            } else {
+                icon.className = 'fa-solid fa-moon me-1';
+                text.innerText = 'الوضع الداكن';
+            }
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeUI(savedTheme);
+            loadData();
+        };
+    </script>
+</body>
+</html>
