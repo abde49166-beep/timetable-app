@@ -211,7 +211,7 @@
                                 </tr>
                             </thead>
                             <tbody id="scheduleBody">
-                                <!-- البيانات تُملأ ديناميكياً -->
+                                <!-- البيانات تُملأ ديناميكياً مع دمج الخلايا -->
                             </tbody>
                         </table>
                     </div>
@@ -332,15 +332,40 @@
                 });
             }
 
-            // رسم أسطر الجدول مباشرة وبدون أخطاء تجميد
-            filtered.forEach(item => {
-                const status = getProfStatus(item.prof);
-                const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
+            // خوارزمية دمج الخلايا الآمنة والبسيطة (Rowspan)
+            let i = 0;
+            while (i < filtered.length) {
+                const currentItem = filtered[i];
+                let groupSpan = 1;
 
-                tbody.innerHTML += `
-                    <tr>
-                        <td><span class="badge bg-secondary">${item.group || ''}</span></td>
-                        <td class="fw-bold">${item.day || ''}</td>
+                // حساب عدد الصفوف المتتالية التي تملك نفس الفوج ونفس اليوم
+                for (let k = i + 1; k < filtered.length; k++) {
+                    const nextItem = filtered[k];
+                    if (
+                        nextItem.group && currentItem.group && nextItem.group.trim() === currentItem.group.trim() &&
+                        nextItem.day && currentItem.day && nextItem.day.trim() === currentItem.day.trim()
+                    ) {
+                        groupSpan++;
+                    } else {
+                        break;
+                    }
+                }
+
+                // رسم الصفوف التابعة لنفس المجموعة
+                for (let j = 0; j < groupSpan; j++) {
+                    const item = filtered[i + j];
+                    const status = getProfStatus(item.prof);
+                    const badgeClass = status === 'حاضر' ? 'badge-present' : 'badge-absent';
+
+                    let rowHTML = '<tr>';
+
+                    // الدمج يُضاف فقط في الصف الأول من المجموعة
+                    if (j === 0) {
+                        rowHTML += `<td rowspan="${groupSpan}"><span class="badge bg-secondary">${item.group || ''}</span></td>`;
+                        rowHTML += `<td rowspan="${groupSpan}" class="fw-bold">${item.day || ''}</td>`;
+                    }
+
+                    rowHTML += `
                         <td class="fw-bold">${item.subject || ''}</td>
                         <td>${item.prof || ''}</td>
                         <td>${item.startTime || ''} - ${item.endTime || ''}</td>
@@ -350,9 +375,13 @@
                             </a>
                         </td>
                         <td><span class="badge ${badgeClass}">${status}</span></td>
-                    </tr>
-                `;
-            });
+                    </tr>`;
+
+                    tbody.innerHTML += rowHTML;
+                }
+
+                i += groupSpan; // الانتقال للمجموعة التالية مباشرة
+            }
 
             // حساب الحصة القادمة
             const now = new Date();
@@ -427,31 +456,4 @@
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            updateThemeUI(newTheme);
-        }
-
-        function updateThemeUI(theme) {
-            const icon = document.getElementById('themeIcon');
-            const text = document.getElementById('themeText');
-            
-            if (theme === 'dark') {
-                icon.className = 'fa-solid fa-sun me-1';
-                text.innerText = 'الوضع المضيء';
-            } else {
-                icon.className = 'fa-solid fa-moon me-1';
-                text.innerText = 'الوضع الداكن';
-            }
-        }
-
-        window.onload = () => {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeUI(savedTheme);
-            loadData();
-        };
-    </script>
-</body>
-</html>
+            document
